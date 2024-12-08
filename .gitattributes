@@ -1,0 +1,9 @@
+# Forçar Dart como linguagem principal
+*.dart linguist-detectable=true
+
+# Ignorar linguagens irrelevantes
+*.cpp linguist-detectable=false
+*.h linguist-detectable=false
+*.gradle linguist-detectable=false
+*.kt linguist-detectable=false
+*.swift linguist-detectable=false

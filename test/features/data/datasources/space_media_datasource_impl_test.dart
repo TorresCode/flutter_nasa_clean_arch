@@ -33,5 +33,5 @@ void main() {
     verify(() => client.get(urlExpected)).called(1);
   });
 
-  test('Should return a SpaceMediaModel when is success', body)
+  test('Should return a SpaceMediaModel when is success', body);
 }
