@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:nasa_clean_arch/core/errors/exceptions.dart';
 import 'package:nasa_clean_arch/core/http_client/http_client.dart';
 import 'package:nasa_clean_arch/core/utils/converters/date_to_string_converter.dart';
 import 'package:nasa_clean_arch/core/utils/keys/nasa_api_keys.dart';
@@ -14,11 +15,17 @@ class NasaDatasourceImpl extends ISpaceMediaDatasource {
   @override
   Future<SpaceMediaModel> getSpaceMediaFromDate(DateTime date) async {
     final response = await client.get(NasaEndpoints.apod(NasaApiKeys.apiKey, DateToStringConverter.convert(date)));
-    if(response.statusCode == 200) {
-      return SpaceMediaModel.fromJson(jsonDecode(response.data));
+    if (response.statusCode == 200) {
+      //try {
+        final jsonData = jsonDecode(response.data);
+        return SpaceMediaModel.fromJson(jsonData);
+      /*} catch (e) {
+        throw FormatException('Invalid JSON: ${response.data}');
+      }*/
     } else {
-      return SpaceMediaModel(explanation: 'explanation', title: 'title', url: 'url');
+       throw ServerExceptions();
     }
+
     //return await client.get(NasaEndpoints.apod(NasaApiKeys.apiKey, DateToStringConverter.convert(date)));
   }
 

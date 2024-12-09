@@ -1,39 +1,56 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:nasa_clean_arch/core/errors/exceptions.dart';
+import 'package:nasa_clean_arch/core/http_client/http_client.dart';
+import 'package:nasa_clean_arch/features/data/datasources/nasa_datasource_impl.dart';
+import 'package:nasa_clean_arch/features/data/datasources/space_media_datasource.dart';
 import 'package:nasa_clean_arch/features/data/models/space_media_model.dart';
 import 'package:nasa_clean_arch/features/domain/entities/space_media_entity.dart';
 
 import '../../mocks/space_media_mock.dart';
+import '../datasources/space_media_datasource_impl_test.dart';
 
 void main() {
 
+  late ISpaceMediaDatasource datasource;
+  late HttpClient client;
+
+  setUp(() {
+    client = HttpClientMock();
+    datasource = NasaDatasourceImpl(client);
+  });
+  final tDateTime = DateTime(2021, 02, 02);
+  final urlExpeted = 'https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY&date=2021-02-02'; 
   final tSpaceMediaModel = SpaceMediaModel(
-    explanation: "Are Saturn's auroras like Earth's?  To help answer this question, the Hubble Space Telescope and the Cassini spacecraft monitored Saturn's North Pole simultaneously during Cassini's final orbits around the gas giant in September 2017.  During this time, Saturn's tilt caused its North Pole to be clearly visible from Earth. The featured image is a composite of ultraviolet images of auroras and optical images of Saturn's clouds and rings, all taken by Hubble.  Like on Earth, Saturn's northern auroras can make total or partial rings around the pole. Unlike on Earth, however, Saturn's auroras are frequently spirals -- and more likely to peak in brightness just before midnight and dawn.  In contrast to Jupiter's auroras, Saturn's auroras appear better related to connecting Saturn's internal magnetic field to the nearby, variable, solar wind.  Saturn's southern auroras were similarly imaged back in 2004 when the planet's South Pole was clearly visible to Earth.    Your Sky Surprise: What picture did APOD feature on your birthday? (post 1995)",
-    title: "Aurora around Saturn's North Pole",
-    url: "https://apod.nasa.gov/apod/image/2412/SaturnAurora_Hubble_960.jpg",
+    explanation: "Meteors can be colorful. While the human eye usually cannot discern many colors, cameras often can. Pictured is a Quadrantids meteor captured by camera over Missouri, USA, early this month that was not only impressively bright, but colorful. The radiant grit, likely cast off by asteroid 2003 EH1, blazed a path across Earth's atmosphere.  Colors in meteors usually originate from ionized elements released as the meteor disintegrates, with blue-green typically originating from magnesium, calcium radiating violet, and nickel glowing green. Red, however, typically originates from energized nitrogen and oxygen in the Earth's atmosphere.  This bright meteoric fireball was gone in a flash -- less than a second -- but it left a wind-blown ionization trail that remained visible for several minutes.   APOD is available via Facebook: in English, Catalan and Portuguese",
+    title: "A Colorful Quadrantid Meteor",
+    url: "https://apod.nasa.gov/apod/image/2102/MeteorStreak_Kuszaj_1080.jpg"
   );
+  void successMock(){
+    when(() => client.get(any())).thenAnswer((_) async => HttpResponse(data: spaceMediaMock, statusCode: 200));
+  }
 
-  test('Should be a subclass of SpaceMediaEntity', () {
-    expect(tSpaceMediaModel, isA<SpaceMediaEntity>());
+  test('Should call the get meyhod with correct url.', () async {
+    successMock();
+    await datasource.getSpaceMediaFromDate(tDateTime);
+    verify(() => client.get(urlExpeted)).called(1);
   });
 
-  test('Should return a valid model', () {
-    final Map<String, dynamic> jsonMap = json.decode(spaceMediaMock);
-    final result = SpaceMediaModel.fromJson(jsonMap);
-    expect(result, tSpaceMediaModel);
+  test('Should return a SpaceMediaModel when is successful.', () async {
+    successMock();
+    final tSpaceMediaModelExpected = SpaceMediaModel(explanation: "Meteors can be colorful. While the human eye usually cannot discern many colors, cameras often can. Pictured is a Quadrantids meteor captured by camera over Missouri, USA, early this month that was not only impressively bright, but colorful. The radiant grit, likely cast off by asteroid 2003 EH1, blazed a path across Earth's atmosphere.  Colors in meteors usually originate from ionized elements released as the meteor disintegrates, with blue-green typically originating from magnesium, calcium radiating violet, and nickel glowing green. Red, however, typically originates from energized nitrogen and oxygen in the Earth's atmosphere.  This bright meteoric fireball was gone in a flash -- less than a second -- but it left a wind-blown ionization trail that remained visible for several minutes.   APOD is available via Facebook: in English, Catalan and Portuguese",
+    title: "A Colorful Quadrantid Meteor",
+    url: "https://apod.nasa.gov/apod/image/2102/MeteorStreak_Kuszaj_1080.jpg");
+    final result = await datasource.getSpaceMediaFromDate(tDateTime);
+    expect(result, tSpaceMediaModelExpected);
   });
 
-  test('Should return a json map containing the proper data', (){
-    final expectMap = {
-      "explanation": "Are Saturn's auroras like Earth's?  To help answer this question, the Hubble Space Telescope and the Cassini spacecraft monitored Saturn's North Pole simultaneously during Cassini's final orbits around the gas giant in September 2017.  During this time, Saturn's tilt caused its North Pole to be clearly visible from Earth. The featured image is a composite of ultraviolet images of auroras and optical images of Saturn's clouds and rings, all taken by Hubble.  Like on Earth, Saturn's northern auroras can make total or partial rings around the pole. Unlike on Earth, however, Saturn's auroras are frequently spirals -- and more likely to peak in brightness just before midnight and dawn.  In contrast to Jupiter's auroras, Saturn's auroras appear better related to connecting Saturn's internal magnetic field to the nearby, variable, solar wind.  Saturn's southern auroras were similarly imaged back in 2004 when the planet's South Pole was clearly visible to Earth.    Your Sky Surprise: What picture did APOD feature on your birthday? (post 1995)",
-    "title": "Aurora around Saturn's North Pole",
-    "url": "https://apod.nasa.gov/apod/image/2412/SaturnAurora_Hubble_960.jpg"
-    };
-
-    final result = tSpaceMediaModel.toJson();
-
-    expect(result, expectMap);
+  test('Not found. Error 404', () async {
+    when(() => client.get(any())).thenAnswer((_) async => HttpResponse(data: 'Someone went wrong', statusCode: 400));
+    final result = datasource.getSpaceMediaFromDate(tDateTime);
+    expect(() => result, throwsA(ServerExceptions()));
   });
 
 }
